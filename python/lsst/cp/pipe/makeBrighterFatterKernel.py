@@ -752,7 +752,7 @@ class MakeBrighterFatterKernelTask(pipeBase.CmdLineTask):
             rescaleIm = mi[amp.getBBox()]  # the soon-to-be scaled, mean subtractedm, amp image
             rescaleTemp = temp[amp.getBBox()]
             mean = afwMath.makeStatistics(rescaleIm, afwMath.MEANCLIP, sctrl).getValue()
-            gain = gains[ampName]
+            gain = gains.gains[ampName]
             rescaleIm *= gain
             rescaleTemp *= gain
             self.log.debug("mean*gain = %s, clipped mean = %s" %
@@ -960,9 +960,13 @@ class MakeBrighterFatterKernelTask(pipeBase.CmdLineTask):
         gains = {}
         nomGains = {}
         ptcResults = {}
-        import ipdb as pdb; pdb.set_trace()
         for amp in detector:
             ampName = amp.getName()
+            if ampMeans[ampName] == []:  # all the data was dropped, amp is presumed bad
+                gains[ampName] = 1.0
+                ptcResults[ampName] = (0, 0, 1, 0)
+                continue
+
             nomGains[ampName] = amp.getGain()
             slopeRaw, interceptRaw, rVal, pVal, stdErr = \
                 stats.linregress(np.asarray(ampMeans[ampName]), np.asarray(ampCoVariances[ampName]))
