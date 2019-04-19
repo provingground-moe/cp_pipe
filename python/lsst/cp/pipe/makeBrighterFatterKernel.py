@@ -41,6 +41,7 @@ import lsst.afw.display as afwDisp
 from lsst.ip.isr import IsrTask
 import lsst.pex.config as pexConfig
 import lsst.pipe.base as pipeBase
+import lsst.daf.persistence.butlerExceptions as butlerExceptions
 
 
 class MakeBrighterFatterKernelTaskConfig(pexConfig.Config):
@@ -495,6 +496,14 @@ class MakeBrighterFatterKernelTask(pipeBase.CmdLineTask):
             meanXcorrs = {key: [] for key in ampNames}
         else:
             raise RuntimeError("Unsupported level: {}".format(self.config.level))
+
+        # we must be able to get the gains one way or the other, so check early
+        if not self.config.doCalcGains:
+            try:
+                deleteMe = dataRef.get('brighterFatterGain')  # noqa: F841 - this is clearly wrong
+                del deleteMe
+            except butlerExceptions.NoResults:
+                raise RuntimeError("doCalcGains == False and gains could not be got from butler") from None
 
         # if the level is DETECTOR we need to have the gains first so that each
         # amp can be gain corrected in order to treat the detector as a single
